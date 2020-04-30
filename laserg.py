@@ -90,19 +90,24 @@ def color_segment_back(img, line, x):
         nx -= 1
     return (lum, x, nx)
 
-def write_segment(gc, lum, ie, gy, dpi, bbox, feed, switch_laser_on, switch_laser_off, min_intensity, max_intensity):
+def write_segment(gc, lum, ie, gy, dpi, bbox, feed, switch_laser_on, switch_laser_off, min_intensity, max_intensity, mirror):
     startx, starty, endx, endy = bbox
     gx = img_xpos_to_mm(ie, dpi)
+    y = gy - starty
+    if mirror:
+        x = endx - gx
+    else:
+        x = gx - startx        
     if lum == 0: # skip
         #gc.write("(disable laser: skip start=%d end=%d)\n" % (istart, iend))
         gc.write(switch_laser_off + "\n")
-        gc.write("G0 X%f Y%f\n" % (gx - startx, gy - starty))
+        gc.write("G0 X%f Y%f\n" % (x, y))
     else:
         #gc.write("(enable laser: start=%d end=%d lum=%d)\n" % (istart, iend, lum))
         gc.write((switch_laser_on + "\n" ) % (lum_to_spindel(lum, min_intensity, max_intensity)))
-        gc.write("G1 X%f Y%f F%f\n" % (gx - startx, gy - starty, feed))
+        gc.write("G1 X%f Y%f F%f\n" % (x, y, feed))
         
-def image_to_gcode(file_name, img_converter, invert, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, min_intensity, max_intensity):
+def image_to_gcode(file_name, img_converter, invert, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, min_intensity, max_intensity, mirror):
 
     print("exporting:", file_name)
 
@@ -149,10 +154,10 @@ def image_to_gcode(file_name, img_converter, invert, bbox, dpi, mm_per_sec, lase
                         gx = endx
                         iend = mm_to_img_xpos(gx, dpi)
                         cont = False
-                write_segment(gc, lum, iend, gy, dpi, bbox, feed, switch_laser_on, switch_laser_off, min_intensity, max_intensity)
+                write_segment(gc, lum, iend, gy, dpi, bbox, feed, switch_laser_on, switch_laser_off, min_intensity, max_intensity, mirror)
                 if not cont: # move up
                     gc.write(switch_laser_off + "\n")
-                    gc.write("G0 X%f Y%f\n" % (endx - startx, gy + laser_diameter - starty))
+                    gc.write("G0 X%f Y%f\n" % (0.0 if mirror else endx - startx, gy + laser_diameter - starty)) 
             left_to_right = False
         else:
             gc.write("(move to line %d, right to left)\n" % (line))
@@ -169,10 +174,10 @@ def image_to_gcode(file_name, img_converter, invert, bbox, dpi, mm_per_sec, lase
                         gx = startx
                         iend = mm_to_img_xpos(gx, dpi) - 1
                         cont = False
-                write_segment(gc, lum, iend + 1, gy, dpi, bbox, feed, switch_laser_on, switch_laser_off, min_intensity, max_intensity)
+                write_segment(gc, lum, iend + 1, gy, dpi, bbox, feed, switch_laser_on, switch_laser_off, min_intensity, max_intensity, mirror)
                 if not cont:
                     gc.write(switch_laser_off + "\n")
-                    gc.write("G0 X%f Y%f\n" % (0.0, gy + laser_diameter - starty))
+                    gc.write("G0 X%f Y%f\n" % (endx - startx if mirror else 0.0, gy + laser_diameter - starty))
             left_to_right = True
         gy += laser_diameter
 
@@ -237,23 +242,23 @@ def export_pcb(directory, base_name, dpi, area, is_positive_film, mm_per_sec, la
 
     # export front
     if(os.path.exists(cu_f_file)):
-        image_to_gcode(cu_f_file, convert_image_A_to_laser, is_positive_film, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(cu_f_file, convert_image_A_to_laser, is_positive_film, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, False)
     if(os.path.exists(silk_f_file)):
-        image_to_gcode(silk_f_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(silk_f_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, False)
     if(os.path.exists(mask_f_file)):
-        image_to_gcode(mask_f_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(mask_f_file, convert_image_A_to_laser, True, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, False)
     if(os.path.exists(paste_f_file)):
-        image_to_gcode(paste_f_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(paste_f_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, False)
 
     # export back
     if(os.path.exists(cu_b_file)):
-        image_to_gcode(cu_b_file, convert_image_A_to_laser, is_positive_film, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(cu_b_file, convert_image_A_to_laser, is_positive_film, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, True)
     if(os.path.exists(silk_b_file)):
-        image_to_gcode(silk_b_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(silk_b_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, True)
     if(os.path.exists(mask_b_file)):
-        image_to_gcode(mask_b_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(mask_b_file, convert_image_A_to_laser, True, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, True)
     if(os.path.exists(paste_b_file)):
-        image_to_gcode(paste_b_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity)
+        image_to_gcode(paste_b_file, convert_image_A_to_laser, False, bbox, dpi, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, 0, intensity, True)
 
 def export_image(file_name, invert, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, min_intensity, max_intensity):
     image_to_gcode(file_name, convert_image_A_to_laser, is_positive_film, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, min_intensity, max_intensity)
@@ -268,7 +273,7 @@ img_dpi = 600 # dpi of our original image file
 is_photo_positive = True # False for photo-negative exposure and True for phot-positive
 switch_laser_off = "M5" # command for switchin the laser off
 switch_laser_on = "M3 S%f" # command for switching the laser on; spindle speed corresponds to the laser intensity
-pcb_intensity = 10
+pcb_intensity = 900
 
 export_pcb(pcb_directory, pcb_base_name, img_dpi, pcb_area, is_photo_positive, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, pcb_intensity)
 
