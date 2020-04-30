@@ -1,0 +1,4 @@
+test/*.png
+test/*.ngc
+test/*.kicad_pcb-bak
+test/fp-info-cache
