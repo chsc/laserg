@@ -12,7 +12,7 @@ To setup the process, you have to configure the parameters in the laserg.py file
 Process for PCBs
 ----------------
 
-* USe the plotting dialog to export the layers of your KiCad board to SVG.
+* Use the plotting dialog to export the layers of your KiCad board to SVG.
 
   Select at least the follwing outputs:
   * Edge cuts (used to calculate the board size)
