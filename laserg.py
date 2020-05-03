@@ -267,13 +267,13 @@ def export_image(file_name, invert, mm_per_sec, laser_diameter, switch_laser_on,
 pcb_directory = "test"
 pcb_base_name = "test"
 pcb_area = (200, 600, 400, 700) # roughly where the pcb traces are in the input files
-mm_per_sec = 20 # speed while exposing
+mm_per_sec = 1 # speed while exposing
 laser_diameter = 0.05 # in mm
 img_dpi = 600 # dpi of our original image file
 is_photo_positive = True # False for photo-negative exposure and True for phot-positive
 switch_laser_off = "M5" # command for switchin the laser off
 switch_laser_on = "M3 S%f" # command for switching the laser on; spindle speed corresponds to the laser intensity
-pcb_intensity = 900
+pcb_intensity = 1000
 
 export_pcb(pcb_directory, pcb_base_name, img_dpi, pcb_area, is_photo_positive, mm_per_sec, laser_diameter, switch_laser_on, switch_laser_off, pcb_intensity)
 
